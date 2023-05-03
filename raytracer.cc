@@ -1,6 +1,6 @@
 #include "raytracer.h"
 #include <random>
-
+#include <iostream>
 //------------------------------------------------------------------------------
 /**
 */
@@ -31,7 +31,7 @@ Raytracer::Raytrace()
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
     float disGen = dis(generator);
 
-#define MT 1
+#define MT 0
 
 #if MT
     std::for_each(std::execution::par, horIter.begin(), horIter.end(),
@@ -123,12 +123,12 @@ Raytracer::TracePath(Ray ray, unsigned n)
 /**
 */
 bool
-Raytracer::Raycast(Ray ray, vec3& hitPoint, vec3& hitNormal, Object*& hitObject, float& distance, std::vector<Object*> world)
+Raytracer::Raycast(Ray ray, vec3& hitPoint, vec3& hitNormal, Object* &hitObject, float& distance, std::vector<Object*> world)
 {
     bool isHit = false;
     HitResult closestHit;
     //int numHits = 0;
-    HitResult hit;
+    //HitResult hit;
 
     // First, sort the world objects
     //std::sort(world.begin(), world.end());
@@ -154,17 +154,17 @@ Raytracer::Raycast(Ray ray, vec3& hitPoint, vec3& hitNormal, Object*& hitObject,
     
     for (auto obj : world)
     {
-        auto opt = obj->Intersect(ray, closestHit.t);
+        auto hitResult = obj->Intersect(ray, closestHit.t);
 
-        if (opt.HasValue())
-        {
-            hit = opt.Get();
-            if (hit.t < closestHit.t);
-                closestHit = hit;
-            //closestHit.object = object;
-            isHit = true;
-            //numHits++;
-        }
+        if (hitResult.object == nullptr)
+            continue;
+
+        //if(hitResult.t < closestHit.t);
+        closestHit = hitResult;
+        //closestHit.object = object;
+        isHit = true;
+        //numHits++;
+        
     }
     /*
     while (world.size() > 0)

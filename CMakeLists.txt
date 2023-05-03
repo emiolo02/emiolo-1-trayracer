@@ -49,7 +49,7 @@ SET(files
 		random.cc
 		material.h
 		material.cc
-		stb_image.h
+		stb_image_write.h
 		SaveImage.h
 	)
 SOURCE_GROUP("trayracer" FILES ${files})

@@ -1,7 +1,7 @@
-#define _DEBUG
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
+//#define _DEBUG
+//#define _CRTDBG_MAP_ALLOC
+//#include <stdlib.h>
+//#include <crtdbg.h>
 //#define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
 //#define new DEBUG_NEW
 
@@ -12,10 +12,11 @@
 #include "sphere.h"
 #include <chrono>
 #include <iostream>
+#include "SaveImage.h"
 
 #define degtorad(angle) angle * MPI / 180
 
-#define NO_GL 1
+#define NO_GL 0
 #if NO_GL
 void GenerateObjects(int num, Raytracer& rt)
 {
@@ -28,16 +29,27 @@ void GenerateObjects(int num, Raytracer& rt)
 
     for (int it = 0; it < num; it++)
     {
+        int random = FastRandom() % 3;
+
+        Material mat = Material();
+        float r;
+        float g;
+        float b;
+        float span;
+
+        Sphere* obj;
+
+        switch (random)
         {
-            Material mat = Material();
+        case 0:
             mat.type = "Lambertian";
-            float r = RandomFloat();
-            float g = RandomFloat();
-            float b = RandomFloat();
+            r = RandomFloat();
+            g = RandomFloat();
+            b = RandomFloat();
             mat.color = { r,g,b };
             mat.roughness = RandomFloat();
-            const float span = 10.0f;
-            Sphere* ground = new Sphere(
+            span = 10.0f;
+            obj = new Sphere(
                 RandomFloat() * 0.7f + 0.2f,
                 {
                     RandomFloatNTP() * span,
@@ -45,17 +57,17 @@ void GenerateObjects(int num, Raytracer& rt)
                     RandomFloatNTP() * span
                 },
                 mat);
-            rt.AddObject(ground);
-        } {
-            Material mat = Material();
+            rt.AddObject(obj);
+            break;
+        case 1:
             mat.type = "Conductor";
-            float r = RandomFloat();
-            float g = RandomFloat();
-            float b = RandomFloat();
+            r = RandomFloat();
+            g = RandomFloat();
+            b = RandomFloat();
             mat.color = { r,g,b };
             mat.roughness = RandomFloat();
-            const float span = 30.0f;
-            Sphere* ground = new Sphere(
+            span = 30.0f;
+            obj = new Sphere(
                 RandomFloat() * 0.7f + 0.2f,
                 {
                     RandomFloatNTP() * span,
@@ -63,18 +75,18 @@ void GenerateObjects(int num, Raytracer& rt)
                     RandomFloatNTP() * span
                 },
                 mat);
-            rt.AddObject(ground);
-        } {
-            Material mat = Material();
+            rt.AddObject(obj);
+            break;
+        case 2:
             mat.type = "Dielectric";
-            float r = RandomFloat();
-            float g = RandomFloat();
-            float b = RandomFloat();
+            r = RandomFloat();
+            g = RandomFloat();
+            b = RandomFloat();
             mat.color = { r,g,b };
             mat.roughness = RandomFloat();
             mat.refractionIndex = 1.65;
-            const float span = 25.0f;
-            Sphere* ground = new Sphere(
+            span = 25.0f;
+            obj = new Sphere(
                 RandomFloat() * 0.7f + 0.2f,
                 {
                     RandomFloatNTP() * span,
@@ -82,7 +94,8 @@ void GenerateObjects(int num, Raytracer& rt)
                     RandomFloatNTP() * span
                 },
                 mat);
-            rt.AddObject(ground);
+            rt.AddObject(obj);
+            break;
         }
     }
 }
@@ -95,6 +108,7 @@ int main()
     int height;
     int raysPerPixel;
     int maxBounces;
+    int numObj;
     std::cout << "Image width?" << std::endl;
     std::cin >> width; 
     std::cout << "Image height?" << std::endl;
@@ -103,18 +117,42 @@ int main()
     std::cin >> raysPerPixel;
     std::cout << "Max bounces?" << std::endl;
     std::cin >> maxBounces;
+    std::cout << "How many objects?" << std::endl;
+    std::cin >> numObj;
+
 
     std::vector<Color> frameBuffer;
     frameBuffer.resize(width * height);
     
     Raytracer rt = Raytracer(width, height, frameBuffer, raysPerPixel, maxBounces);
-    GenerateObjects(12, rt);
+    GenerateObjects(numObj, rt);
 
+    mat4 xMat = (rotationx(90));
+    mat4 yMat = (rotationy(0));
+    mat4 cameraTransform = multiply(yMat, xMat);
+
+    cameraTransform.m30 = 0;
+    cameraTransform.m31 = 10;
+    cameraTransform.m32 = 0;
+
+    rt.SetViewMatrix(cameraTransform);
+    int loopAmount = 10;
     auto start = std::chrono::steady_clock::now();
-    rt.Raytrace();
+    for (int i = 0; i < loopAmount; i++)
+        rt.Raytrace();
     auto end = std::chrono::steady_clock::now();
-    int frameTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    int frameTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()/loopAmount;
     std::cout << rt.numOfRays << " rays in " << (float)frameTime / 1000 << " ms";;
+
+    for (auto& pixel : frameBuffer)
+    {
+        pixel.r /= loopAmount;
+        pixel.g /= loopAmount;
+        pixel.b /= loopAmount;
+    }
+
+    SaveImage::Save("../Render.png", frameBuffer, width, height);
+
     return 0;
 }
 #else
@@ -131,9 +169,9 @@ int main()
 
     std::vector<Color> framebuffer;
 
-    const unsigned w = 720*16/9;
-    const unsigned h = 720;
-    wnd.SetSize(w, h);
+    const unsigned w = 200;
+    const unsigned h = 100;
+    wnd.SetSize(w*5, h*5);
     framebuffer.resize(w * h);
     
     int raysPerPixel = 1;
@@ -314,10 +352,12 @@ int main()
         rt.Raytrace();
         auto end = std::chrono::steady_clock::now();
         int frameTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-
-        system("cls");
-        std::cout << (float)frameTime/1000 << " ms\n";
-        std::cout << 1000000.0f / frameTime << " FPS\n";
+        if (frameIndex % 50 == 0)
+        {
+            system("cls");
+            std::cout << (float)frameTime/1000 << " ms\n";
+            std::cout << 1000000.0f / frameTime << " FPS\n";
+        }
         frameIndex++;
 
         // Get the average distribution of all samples

@@ -17,11 +17,11 @@ struct HitResult
     // normal
     vec3 normal;
     // hit object, or nullptr
-    Object* object = nullptr;
+    Object* object;
     // intersection distance
     float t = FLT_MAX;
 };
-
+/*
 template<class TYPE>
 class Optional
 {
@@ -72,6 +72,7 @@ private:
     bool hasValue = false;
     std::shared_ptr<HitResult> value = nullptr;
 };
+*/
 
 //------------------------------------------------------------------------------
 /**
@@ -102,12 +103,12 @@ public:
     virtual ~Object()
     {
         // clean up name!
-        delete[] name;
+        //delete[] name;
     }
 
-    virtual Optional<HitResult> Intersect(Ray ray, float maxDist) { return {}; };
-    virtual Color GetColor() = 0;
-    virtual Ray ScatterRay(Ray ray, vec3 point, vec3 normal) { return Ray({ 0,0,0 }, {1,1,1}); };
+    virtual HitResult Intersect(Ray ray, float maxDist) { return HitResult(); }
+    virtual Color GetColor() { return{ 1, 1, 1 }; };
+    virtual Ray ScatterRay(Ray ray, vec3 point, vec3 normal) { return Ray({ 0,0,0 }, {1,1,1}); }
     std::string GetName() { return std::string((const char*)name); }
     unsigned long long GetId() { return this->id; }
 
